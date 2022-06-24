@@ -4,8 +4,7 @@ import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-
-
+from selenium.webdriver.firefox.service import Service
 
 
 config = configparser.ConfigParser()
@@ -17,7 +16,7 @@ userlink = config["USER"]["userlink"]
 
 regex = r"watch|groups|photo|notification|bookmark|gaming|marketplace|stories|friends|"+username
 
-browser = webdriver.Firefox()
+browser = webdriver.Firefox(service=Service(executable_path="/home/arch1/bin/geckodriver"))
 browser.implicitly_wait(config['internetspeed']["wait"]) # seconds
 
 browser.get('https://facebook.com')
@@ -39,7 +38,23 @@ browser.get(userlink+ "/following")
 time.sleep(5)
 
 
+SCROLL_PAUSE_TIME = 0.5
 
+# Get scroll height
+last_height = browser.execute_script("return document.body.scrollHeight")
+
+while True:
+    # Scroll down to bottom
+    browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+    # Wait to load page
+    time.sleep(SCROLL_PAUSE_TIME)
+
+    # Calculate new scroll height and compare with last scroll height
+    new_height = browser.execute_script("return document.body.scrollHeight")
+    if new_height == last_height:
+        break
+    last_height = new_height
 
 
 
@@ -49,8 +64,10 @@ links = browser.find_elements(By.CSS_SELECTOR, "a")
 link_list = []
 for link in links:
     href = link.get_attribute('href')
-    if not re.search(regex, href) and len(href) > 25:
+    if type(href) == str and not re.search(regex, href) and len(href) > 25:
         link_list.append(href)
+    else:
+        print(f"Ignoring {href}")
 
 # Make unique
 link_list = list(set(link_list))
